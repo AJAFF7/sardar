@@ -6,6 +6,7 @@ const log = require("electron-log");
 
 let mainWindow;
 
+// 🪟 Create the main window
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1700,
@@ -15,17 +16,19 @@ function createWindow() {
     autoHideMenuBar: true,
     backgroundColor: "#00000000",
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"), // ✅ Preload script
-      nodeIntegration: false, // 🔒 Important for contextBridge
-      contextIsolation: true, // ✅ Required for preload to work
+      preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
       webviewTag: true,
     },
   });
 
+  // Load initial HTML file (fallback)
   mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
-    console.error("Failed to load local HTML:", err);
+    console.error("❌ Failed to load local HTML:", err);
   });
 
+  // Inject custom background image
   mainWindow.webContents.on("dom-ready", () => {
     const imagePath =
       "file:///C:/Users/jaff/Environments/Alfa/resources/icons/k8s-bg.png";
@@ -59,6 +62,7 @@ function createWindow() {
     `);
   });
 
+  // Load React app after 3s delay
   setTimeout(() => {
     mainWindow.loadURL("http://localhost:3535");
   }, 3000);
@@ -76,10 +80,18 @@ function createWindow() {
   });
 }
 
-// Auto updater setup
+// 🔄 Auto-updater setup
 function setupAutoUpdater() {
+  // Log config
   log.transports.file.level = "info";
   autoUpdater.logger = log;
+
+  // Optional: manually set feed URL (not needed for public GitHub repos)
+  autoUpdater.setFeedURL({
+    provider: "github",
+    owner: "AJAFF7",
+    repo: "sardar",
+  });
 
   autoUpdater.on("checking-for-update", () => {
     log.info("🔍 Checking for update...");
@@ -87,7 +99,7 @@ function setupAutoUpdater() {
 
   autoUpdater.on("update-available", () => {
     log.info("⬇️ Update available");
-    mainWindow.webContents.send("update_available");
+    if (mainWindow) mainWindow.webContents.send("update_available");
   });
 
   autoUpdater.on("update-not-available", () => {
@@ -104,7 +116,7 @@ function setupAutoUpdater() {
 
   autoUpdater.on("update-downloaded", () => {
     log.info("✅ Update downloaded");
-    mainWindow.webContents.send("update_downloaded");
+    if (mainWindow) mainWindow.webContents.send("update_downloaded");
 
     const choice = dialog.showMessageBoxSync(mainWindow, {
       type: "question",
@@ -112,7 +124,8 @@ function setupAutoUpdater() {
       defaultId: 0,
       cancelId: 1,
       title: "Update Ready",
-      message: "An update has been downloaded. Restart the app now to apply the update?",
+      message:
+        "An update has been downloaded. Do you want to restart the app now to apply it?",
     });
 
     if (choice === 0) {
@@ -120,15 +133,22 @@ function setupAutoUpdater() {
     }
   });
 
+  // Start checking
   autoUpdater.checkForUpdatesAndNotify();
 }
 
-// Listen from preload (React) side
+// IPC: manual trigger from renderer (optional)
 ipcMain.on("check_for_updates", () => {
+  log.info("🧠 Received check_for_updates from renderer");
   autoUpdater.checkForUpdatesAndNotify();
 });
 
-// App ready
+ipcMain.on("restart_app", () => {
+  log.info("♻️ Received restart_app from renderer");
+  autoUpdater.quitAndInstall();
+});
+
+// 🔄 App startup
 app.whenReady().then(() => {
   const serverPath = path.join(__dirname, "server.js");
 
@@ -137,11 +157,12 @@ app.whenReady().then(() => {
     return;
   }
 
-  require(serverPath);
-  createWindow();
-  setupAutoUpdater();
+  require(serverPath); // Start backend
+  createWindow();       // Start UI
+  setupAutoUpdater();   // Setup auto-updates
 });
 
+// macOS: keep app open until user quits
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });

@@ -1,7 +1,7 @@
 {
-  "name": "Sardar",
+  "name": "sardar",
   "version": "1.0.3",
-  "description": "Electron app",
+  "description": "Electron-based network tool",
   "main": "main.js",
   "author": "AJAFF",
   "license": "MIT",
@@ -14,12 +14,14 @@
     "appId": "com.ajaff.sardar",
     "productName": "Sardar",
     "asar": true,
-    "copyright": "Copyright © 2025 SE. AJAFF All rights reserved.",
+    "copyright": "Copyright © 2025 SE. AJAFF",
     "files": [
       "main.js",
       "server.js",
       "build/**/*",
       "models/**/*",
+      "!node_modules/.cache/**",
+      "!dist/**",
       "package.json",
       {
         "from": "server",
