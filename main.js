@@ -23,15 +23,12 @@ function createWindow() {
     },
   });
 
-  // Load initial HTML file (fallback)
   mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
     console.error("❌ Failed to load local HTML:", err);
   });
 
-  // Inject custom background image
   mainWindow.webContents.on("dom-ready", () => {
-    const imagePath =
-      "file:///C:/Users/jaff/Environments/Alfa/resources/icons/k8s-bg.png";
+    const imagePath = "file:///C:/Users/jaff/Environments/sardar/resources/icons/k8s-bg.png";
 
     mainWindow.webContents.insertCSS(`
       * {
@@ -82,16 +79,11 @@ function createWindow() {
 
 // 🔄 Auto-updater setup
 function setupAutoUpdater() {
-  // Log config
   log.transports.file.level = "info";
   autoUpdater.logger = log;
 
-  // Optional: manually set feed URL (not needed for public GitHub repos)
-  autoUpdater.setFeedURL({
-    provider: "github",
-    owner: "AJAFF7",
-    repo: "sardar",
-  });
+  // You don't need this if your repo is public and configured correctly:
+  // autoUpdater.setFeedURL({ provider: "github", owner: "AJAFF7", repo: "sardar" });
 
   autoUpdater.on("checking-for-update", () => {
     log.info("🔍 Checking for update...");
@@ -104,10 +96,12 @@ function setupAutoUpdater() {
 
   autoUpdater.on("update-not-available", () => {
     log.info("✅ No updates available");
+    if (mainWindow) mainWindow.webContents.send("update_not_available");
   });
 
   autoUpdater.on("error", (err) => {
     log.error("❌ Auto-updater error:", err);
+    if (mainWindow) mainWindow.webContents.send("update_error", err.message || String(err));
   });
 
   autoUpdater.on("download-progress", (progress) => {
@@ -124,8 +118,7 @@ function setupAutoUpdater() {
       defaultId: 0,
       cancelId: 1,
       title: "Update Ready",
-      message:
-        "An update has been downloaded. Do you want to restart the app now to apply it?",
+      message: "An update has been downloaded. Do you want to restart the app now to apply it?",
     });
 
     if (choice === 0) {
@@ -133,18 +126,18 @@ function setupAutoUpdater() {
     }
   });
 
-  // Start checking
+  // Initial background check
   autoUpdater.checkForUpdatesAndNotify();
 }
 
-// IPC: manual trigger from renderer (optional)
+// 🧠 IPC listeners
 ipcMain.on("check_for_updates", () => {
-  log.info("🧠 Received check_for_updates from renderer");
-  autoUpdater.checkForUpdatesAndNotify();
+  log.info("🧠 Received 'check_for_updates' from renderer");
+  autoUpdater.checkForUpdates();
 });
 
 ipcMain.on("restart_app", () => {
-  log.info("♻️ Received restart_app from renderer");
+  log.info("♻️ Received 'restart_app' from renderer");
   autoUpdater.quitAndInstall();
 });
 
@@ -158,11 +151,11 @@ app.whenReady().then(() => {
   }
 
   require(serverPath); // Start backend
-  createWindow();       // Start UI
-  setupAutoUpdater();   // Setup auto-updates
+  createWindow();      // Start UI
+  setupAutoUpdater();  // Enable auto-updates
 });
 
-// macOS: keep app open until user quits
+// macOS behavior
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
