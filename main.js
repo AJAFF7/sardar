@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require("electron");
+const { app, BrowserWindow, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { autoUpdater } = require("electron-updater");
@@ -6,29 +6,29 @@ const log = require("electron-log");
 
 let mainWindow;
 
-// 🪟 Create the main window
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1700,
     height: 1167,
     frame: false,
     transparent: true,
-    autoHideMenuBar: true,
-    backgroundColor: "#00000000",
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      nodeIntegration: false,
+      nodeIntegration: true,
       contextIsolation: true,
+      enableRemoteModule: false,
       webviewTag: true,
     },
+    autoHideMenuBar: true,
+    backgroundColor: "#00000000",
   });
 
   mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
-    console.error("❌ Failed to load local HTML:", err);
+    console.error("Failed to load local HTML:", err);
   });
 
   mainWindow.webContents.on("dom-ready", () => {
-    const imagePath = "file:///C:/Users/jaff/Environments/sardar/resources/icons/k8s-bg.png";
+    const imagePath =
+      "file:///C:/Users/jaff/Environments/Alfa/resources/icons/k8s-bg.png";
 
     mainWindow.webContents.insertCSS(`
       * {
@@ -59,7 +59,6 @@ function createWindow() {
     `);
   });
 
-  // Load React app after 3s delay
   setTimeout(() => {
     mainWindow.loadURL("http://localhost:3535");
   }, 3000);
@@ -77,31 +76,36 @@ function createWindow() {
   });
 }
 
-// 🔄 Auto-updater setup
+// Auto updater setup
 function setupAutoUpdater() {
   log.transports.file.level = "info";
   autoUpdater.logger = log;
-
-  // You don't need this if your repo is public and configured correctly:
-  // autoUpdater.setFeedURL({ provider: "github", owner: "AJAFF7", repo: "sardar" });
 
   autoUpdater.on("checking-for-update", () => {
     log.info("🔍 Checking for update...");
   });
 
-  autoUpdater.on("update-available", () => {
-    log.info("⬇️ Update available");
-    if (mainWindow) mainWindow.webContents.send("update_available");
+  autoUpdater.on("update-available", (info) => {
+    log.info("⬇️ Update available.", info);
+    dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Update Available",
+      message: "A new update is available and will be downloaded.",
+    });
   });
 
-  autoUpdater.on("update-not-available", () => {
-    log.info("✅ No updates available");
-    if (mainWindow) mainWindow.webContents.send("update_not_available");
+  autoUpdater.on("update-not-available", (info) => {
+    log.info("✅ No updates available.", info);
+    dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "No Update",
+      message: "You are using the latest version.",
+    });
   });
 
   autoUpdater.on("error", (err) => {
-    log.error("❌ Auto-updater error:", err);
-    if (mainWindow) mainWindow.webContents.send("update_error", err.message || String(err));
+    log.error("❌ Error in auto-updater.", err);
+    dialog.showErrorBox("Update error", err == null ? "unknown" : (err.stack || err).toString());
   });
 
   autoUpdater.on("download-progress", (progress) => {
@@ -109,39 +113,26 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on("update-downloaded", () => {
-    log.info("✅ Update downloaded");
-    if (mainWindow) mainWindow.webContents.send("update_downloaded");
-
-    const choice = dialog.showMessageBoxSync(mainWindow, {
-      type: "question",
-      buttons: ["Restart Now", "Later"],
-      defaultId: 0,
-      cancelId: 1,
-      title: "Update Ready",
-      message: "An update has been downloaded. Do you want to restart the app now to apply it?",
-    });
-
-    if (choice === 0) {
-      autoUpdater.quitAndInstall();
-    }
+    log.info("✅ Update downloaded; will install now...");
+    dialog
+      .showMessageBox(mainWindow, {
+        type: "question",
+        buttons: ["Restart Now", "Later"],
+        defaultId: 0,
+        cancelId: 1,
+        title: "Install Update",
+        message: "Update downloaded. Restart app to apply the update?",
+      })
+      .then((result) => {
+        if (result.response === 0) {
+          autoUpdater.quitAndInstall();
+        }
+      });
   });
 
-  // Initial background check
   autoUpdater.checkForUpdatesAndNotify();
 }
 
-// 🧠 IPC listeners
-ipcMain.on("check_for_updates", () => {
-  log.info("🧠 Received 'check_for_updates' from renderer");
-  autoUpdater.checkForUpdates();
-});
-
-ipcMain.on("restart_app", () => {
-  log.info("♻️ Received 'restart_app' from renderer");
-  autoUpdater.quitAndInstall();
-});
-
-// 🔄 App startup
 app.whenReady().then(() => {
   const serverPath = path.join(__dirname, "server.js");
 
@@ -150,12 +141,11 @@ app.whenReady().then(() => {
     return;
   }
 
-  require(serverPath); // Start backend
-  createWindow();      // Start UI
-  setupAutoUpdater();  // Enable auto-updates
+  require(serverPath);
+  createWindow();
+  setupAutoUpdater();
 });
 
-// macOS behavior
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
