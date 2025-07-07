@@ -83,6 +83,14 @@ function setupAutoUpdater() {
   log.transports.file.level = "info";
   autoUpdater.logger = log;
 
+  // Explicitly set the feed URL for updates
+  autoUpdater.setFeedURL({
+    provider: "github",
+    owner: "AJAFF7",
+    repo: "sardar",
+    // token: "<your_token_if_private>", // optional for private repos
+  });
+
   autoUpdater.on("checking-for-update", () => {
     log.info("🔍 Checking for update...");
   });
