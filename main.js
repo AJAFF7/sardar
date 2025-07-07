@@ -1,239 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require("electron");
-const path = require("path");
-const fs = require("fs");
-const { autoUpdater } = require("electron-updater");
-const log = require("electron-log");
-
-let mainWindow;
-let updateModal;
-
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1700,
-    height: 1167,
-    frame: false,
-    transparent: true,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: true,
-      enableRemoteModule: false,
-      webviewTag: true,
-    },
-    autoHideMenuBar: true,
-    backgroundColor: "#00000000",
-  });
-
-  mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
-    console.error("Failed to load local HTML:", err);
-  });
-
-  mainWindow.webContents.on("dom-ready", () => {
-    const imagePath =
-      "file:///C:/Users/jaff/Environments/Alfa/resources/icons/k8s-bg.png";
-
-    mainWindow.webContents.insertCSS(`
-      * {
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-      }
-      ::-webkit-scrollbar { display: none; }
-
-      body {
-        background-image: url("${imagePath}");
-        background-size: cover;
-        background-position: center;
-        overflow: hidden !important;
-        margin: 0;
-        height: 100vh;
-        width: 100vw;
-        border-radius: 14px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        background-color: transparent;
-        font-family: 'Courier New', Courier, monospace;
-      }
-
-      html {
-        border-radius: 12px;
-        overflow: hidden;
-        background-color: transparent;
-      }
-    `);
-  });
-
-  setTimeout(() => {
-    mainWindow.loadURL("http://localhost:3535");
-  }, 3000);
-
-  mainWindow.webContents.on("did-fail-load", (event, code, description) => {
-    console.error(`❌ Failed to load frontend: ${description} (code: ${code})`);
-  });
-
-  mainWindow.webContents.on("did-finish-load", () => {
-    console.log("✅ Frontend loaded successfully");
-  });
-
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-  });
-}
-
-function showUpdateModal() {
-  if (updateModal) return;
-
-  updateModal = new BrowserWindow({
-    width: 400,
-    height: 200,
-    parent: mainWindow,
-    modal: true,
-    show: false,
-    frame: false,
-    resizable: false,
-    backgroundColor: "#222222",
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  });
-
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8" />
-        <style>
-          body {
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
-            background-color: #222222;
-            color: #ffffff;
-            font-family: sans-serif;
-          }
-          h2 {
-            margin: 0 0 10px;
-          }
-          p {
-            margin: 0 0 20px;
-          }
-          button {
-            background: #00aaff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 14px;
-            border-radius: 4px;
-            cursor: pointer;
-          }
-          #later {
-            background: #555;
-          }
-          .button-group {
-            display: flex;
-            gap: 10px;
-          }
-        </style>
-      </head>
-      <body>
-        <h2>Update Ready</h2>
-        <p>An update has been downloaded. Restart now to apply?</p>
-        <div class="button-group">
-          <button id="restart">Restart Now</button>
-          <button id="later">Later</button>
-        </div>
-        <script>
-          const { ipcRenderer } = require('electron');
-          document.getElementById('restart').addEventListener('click', () => {
-            ipcRenderer.send('update-restart');
-          });
-          document.getElementById('later').addEventListener('click', () => {
-            window.close();
-          });
-        </script>
-      </body>
-    </html>
-  `;
-
-  updateModal.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
-
-  updateModal.once("ready-to-show", () => {
-    updateModal.show();
-  });
-
-  updateModal.on("closed", () => {
-    updateModal = null;
-  });
-}
-
-function setupAutoUpdater() {
-  log.transports.file.level = "info";
-  autoUpdater.logger = log;
-
-  autoUpdater.on("checking-for-update", () => {
-    log.info("🔍 Checking for update...");
-  });
-
-  autoUpdater.on("update-available", (info) => {
-    log.info("⬇️ Update available.", info);
-    // Show a simple info dialog to notify update available and downloading
-    dialog.showMessageBox(mainWindow, {
-      type: "info",
-      title: "Update Available",
-      message: "A new update is available and will be downloaded.",
-    });
-  });
-
-  autoUpdater.on("update-not-available", (info) => {
-    log.info("✅ No updates available.", info);
-    // No popup or message needed if no update available — comment out dialog
-    // dialog.showMessageBox(mainWindow, {
-    //   type: "info",
-    //   title: "No Update",
-    //   message: "You are using the latest version.",
-    // });
-  });
-
-  autoUpdater.on("error", (err) => {
-    log.error("❌ Error in auto-updater.", err);
-    dialog.showErrorBox("Update error", err == null ? "unknown" : (err.stack || err).toString());
-  });
-
-  autoUpdater.on("download-progress", (progress) => {
-    log.info(`📦 Downloading update: ${Math.floor(progress.percent)}%`);
-  });
-
-  autoUpdater.on("update-downloaded", () => {
-    log.info("✅ Update downloaded; will install now...");
-    showUpdateModal();
-  });
-
-  autoUpdater.checkForUpdatesAndNotify();
-}
-
-ipcMain.on("update-restart", () => {
-  if (updateModal) updateModal.close();
-  autoUpdater.quitAndInstall();
-});
-
-app.whenReady().then(() => {
-  const serverPath = path.join(__dirname, "server.js");
-
-  if (!fs.existsSync(serverPath)) {
-    console.error("❌ server.js not found:", serverPath);
-    return;
-  }
-
-  require(serverPath);
-  createWindow();
-  setupAutoUpdater();
-});
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
-
+///#222222
 
 // const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 // const path = require("path");
@@ -314,7 +79,6 @@ app.on("window-all-closed", () => {
 //   });
 // }
 
-// // Custom dark modal for update downloaded
 // function showUpdateModal() {
 //   if (updateModal) return;
 
@@ -333,14 +97,53 @@ app.on("window-all-closed", () => {
 //     },
 //   });
 
-//   updateModal.loadURL(`data:text/html,
-//     <html style="background-color:#222222; color:#fff; font-family:sans-serif;">
-//       <body style="margin:0; display:flex; flex-direction: column; justify-content:center; align-items:center; height:100%;">
+//   const htmlContent = `
+//     <!DOCTYPE html>
+//     <html>
+//       <head>
+//         <meta charset="UTF-8" />
+//         <style>
+//           body {
+//             margin: 0;
+//             display: flex;
+//             flex-direction: column;
+//             justify-content: center;
+//             align-items: center;
+//             height: 100%;
+//             background-color: #222222;
+//             color: #ffffff;
+//             font-family: sans-serif;
+//           }
+//           h2 {
+//             margin: 0 0 10px;
+//           }
+//           p {
+//             margin: 0 0 20px;
+//           }
+//           button {
+//             background: #00aaff;
+//             color: white;
+//             border: none;
+//             padding: 10px 20px;
+//             font-size: 14px;
+//             border-radius: 4px;
+//             cursor: pointer;
+//           }
+//           #later {
+//             background: #555;
+//           }
+//           .button-group {
+//             display: flex;
+//             gap: 10px;
+//           }
+//         </style>
+//       </head>
+//       <body>
 //         <h2>Update Ready</h2>
 //         <p>An update has been downloaded. Restart now to apply?</p>
-//         <div style="margin-top:20px;">
-//           <button id="restart" style="margin:5px; padding:8px 16px; font-size:14px; cursor:pointer;">Restart Now</button>
-//           <button id="later" style="margin:5px; padding:8px 16px; font-size:14px; cursor:pointer;">Later</button>
+//         <div class="button-group">
+//           <button id="restart">Restart Now</button>
+//           <button id="later">Later</button>
 //         </div>
 //         <script>
 //           const { ipcRenderer } = require('electron');
@@ -353,7 +156,9 @@ app.on("window-all-closed", () => {
 //         </script>
 //       </body>
 //     </html>
-//   `);
+//   `;
+
+//   updateModal.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
 
 //   updateModal.once("ready-to-show", () => {
 //     updateModal.show();
@@ -374,6 +179,7 @@ app.on("window-all-closed", () => {
 
 //   autoUpdater.on("update-available", (info) => {
 //     log.info("⬇️ Update available.", info);
+//     // Show a simple info dialog to notify update available and downloading
 //     dialog.showMessageBox(mainWindow, {
 //       type: "info",
 //       title: "Update Available",
@@ -383,11 +189,12 @@ app.on("window-all-closed", () => {
 
 //   autoUpdater.on("update-not-available", (info) => {
 //     log.info("✅ No updates available.", info);
-//     dialog.showMessageBox(mainWindow, {
-//       type: "info",
-//       title: "No Update",
-//       message: "You are using the latest version.",
-//     });
+//     // No popup or message needed if no update available — comment out dialog
+//     // dialog.showMessageBox(mainWindow, {
+//     //   type: "info",
+//     //   title: "No Update",
+//     //   message: "You are using the latest version.",
+//     // });
 //   });
 
 //   autoUpdater.on("error", (err) => {
@@ -399,7 +206,6 @@ app.on("window-all-closed", () => {
 //     log.info(`📦 Downloading update: ${Math.floor(progress.percent)}%`);
 //   });
 
-//   // REPLACED the dialog popup with custom dark modal:
 //   autoUpdater.on("update-downloaded", () => {
 //     log.info("✅ Update downloaded; will install now...");
 //     showUpdateModal();
@@ -408,7 +214,6 @@ app.on("window-all-closed", () => {
 //   autoUpdater.checkForUpdatesAndNotify();
 // }
 
-// // IPC listener for restart from modal
 // ipcMain.on("update-restart", () => {
 //   if (updateModal) updateModal.close();
 //   autoUpdater.quitAndInstall();
@@ -432,154 +237,161 @@ app.on("window-all-closed", () => {
 // });
 
 
-// const { app, BrowserWindow, dialog } = require("electron");
-// const path = require("path");
-// const fs = require("fs");
-// const { autoUpdater } = require("electron-updater");
-// const log = require("electron-log");
 
-// let mainWindow;
 
-// function createWindow() {
-//   mainWindow = new BrowserWindow({
-//     width: 1700,
-//     height: 1167,
-//     frame: false,
-//     transparent: true,
-//     webPreferences: {
-//       nodeIntegration: true,
-//       contextIsolation: true,
-//       enableRemoteModule: false,
-//       webviewTag: true,
-//     },
-//     autoHideMenuBar: true,
-//     backgroundColor: "#00000000",
-//   });
+////////////////////////////
 
-//   mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
-//     console.error("Failed to load local HTML:", err);
-//   });
 
-//   mainWindow.webContents.on("dom-ready", () => {
-//     const imagePath =
-//       "file:///C:/Users/jaff/Environments/Alfa/resources/icons/k8s-bg.png";
 
-//     mainWindow.webContents.insertCSS(`
-//       * {
-//         scrollbar-width: none;
-//         -ms-overflow-style: none;
-//       }
-//       ::-webkit-scrollbar { display: none; }
 
-//       body {
-//         background-image: url("${imagePath}");
-//         background-size: cover;
-//         background-position: center;
-//         overflow: hidden !important;
-//         margin: 0;
-//         height: 100vh;
-//         width: 100vw;
-//         border-radius: 14px;
-//         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-//         background-color: transparent;
-//         font-family: 'Courier New', Courier, monospace;
-//       }
+const { app, BrowserWindow, dialog } = require("electron");
+const path = require("path");
+const fs = require("fs");
+const { autoUpdater } = require("electron-updater");
+const log = require("electron-log");
 
-//       html {
-//         border-radius: 12px;
-//         overflow: hidden;
-//         background-color: transparent;
-//       }
-//     `);
-//   });
+let mainWindow;
 
-//   setTimeout(() => {
-//     mainWindow.loadURL("http://localhost:3535");
-//   }, 3000);
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1700,
+    height: 1167,
+    frame: false,
+    transparent: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: true,
+      enableRemoteModule: false,
+      webviewTag: true,
+    },
+    autoHideMenuBar: true,
+    backgroundColor: "#00000000",
+  });
 
-//   mainWindow.webContents.on("did-fail-load", (event, code, description) => {
-//     console.error(`❌ Failed to load frontend: ${description} (code: ${code})`);
-//   });
+  mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
+    console.error("Failed to load local HTML:", err);
+  });
 
-//   mainWindow.webContents.on("did-finish-load", () => {
-//     console.log("✅ Frontend loaded successfully");
-//   });
+  mainWindow.webContents.on("dom-ready", () => {
+    const imagePath =
+      "file:///C:/Users/jaff/Environments/Alfa/resources/icons/k8s-bg.png";
 
-//   mainWindow.on("closed", () => {
-//     mainWindow = null;
-//   });
-// }
+    mainWindow.webContents.insertCSS(`
+      * {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      ::-webkit-scrollbar { display: none; }
 
-// // Auto updater setup
-// function setupAutoUpdater() {
-//   log.transports.file.level = "info";
-//   autoUpdater.logger = log;
+      body {
+        background-image: url("${imagePath}");
+        background-size: cover;
+        background-position: center;
+        overflow: hidden !important;
+        margin: 0;
+        height: 100vh;
+        width: 100vw;
+        border-radius: 14px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        background-color: transparent;
+        font-family: 'Courier New', Courier, monospace;
+      }
 
-//   autoUpdater.on("checking-for-update", () => {
-//     log.info("🔍 Checking for update...");
-//   });
+      html {
+        border-radius: 12px;
+        overflow: hidden;
+        background-color: transparent;
+      }
+    `);
+  });
 
-//   autoUpdater.on("update-available", (info) => {
-//     log.info("⬇️ Update available.", info);
-//     dialog.showMessageBox(mainWindow, {
-//       type: "info",
-//       title: "Update Available",
-//       message: "A new update is available and will be downloaded.",
-//     });
-//   });
+  setTimeout(() => {
+    mainWindow.loadURL("http://localhost:3535");
+  }, 3000);
 
-//   autoUpdater.on("update-not-available", (info) => {
-//     log.info("✅ No updates available.", info);
-//     dialog.showMessageBox(mainWindow, {
-//       type: "info",
-//       title: "No Update",
-//       message: "You are using the latest version.",
-//     });
-//   });
+  mainWindow.webContents.on("did-fail-load", (event, code, description) => {
+    console.error(`❌ Failed to load frontend: ${description} (code: ${code})`);
+  });
 
-//   autoUpdater.on("error", (err) => {
-//     log.error("❌ Error in auto-updater.", err);
-//     dialog.showErrorBox("Update error", err == null ? "unknown" : (err.stack || err).toString());
-//   });
+  mainWindow.webContents.on("did-finish-load", () => {
+    console.log("✅ Frontend loaded successfully");
+  });
 
-//   autoUpdater.on("download-progress", (progress) => {
-//     log.info(`📦 Downloading update: ${Math.floor(progress.percent)}%`);
-//   });
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
+}
 
-//   autoUpdater.on("update-downloaded", () => {
-//     log.info("✅ Update downloaded; will install now...");
-//     dialog
-//       .showMessageBox(mainWindow, {
-//         type: "question",
-//         buttons: ["Restart Now", "Later"],
-//         defaultId: 0,
-//         cancelId: 1,
-//         title: "Install Update",
-//         message: "Update downloaded. Restart app to apply the update?",
-//       })
-//       .then((result) => {
-//         if (result.response === 0) {
-//           autoUpdater.quitAndInstall();
-//         }
-//       });
-//   });
+// Auto updater setup
+function setupAutoUpdater() {
+  log.transports.file.level = "info";
+  autoUpdater.logger = log;
 
-//   autoUpdater.checkForUpdatesAndNotify();
-// }
+  autoUpdater.on("checking-for-update", () => {
+    log.info("🔍 Checking for update...");
+  });
 
-// app.whenReady().then(() => {
-//   const serverPath = path.join(__dirname, "server.js");
+  autoUpdater.on("update-available", (info) => {
+    log.info("⬇️ Update available.", info);
+    dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Update Available",
+      message: "A new update is available and will be downloaded.",
+    });
+  });
 
-//   if (!fs.existsSync(serverPath)) {
-//     console.error("❌ server.js not found:", serverPath);
-//     return;
-//   }
+  autoUpdater.on("update-not-available", (info) => {
+    log.info("✅ No updates available.", info);
+    dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "No Update",
+      message: "You are using the latest version.",
+    });
+  });
 
-//   require(serverPath);
-//   createWindow();
-//   setupAutoUpdater();
-// });
+  autoUpdater.on("error", (err) => {
+    log.error("❌ Error in auto-updater.", err);
+    dialog.showErrorBox("Update error", err == null ? "unknown" : (err.stack || err).toString());
+  });
 
-// app.on("window-all-closed", () => {
-//   if (process.platform !== "darwin") app.quit();
-// });
+  autoUpdater.on("download-progress", (progress) => {
+    log.info(`📦 Downloading update: ${Math.floor(progress.percent)}%`);
+  });
+
+  autoUpdater.on("update-downloaded", () => {
+    log.info("✅ Update downloaded; will install now...");
+    dialog
+      .showMessageBox(mainWindow, {
+        type: "question",
+        buttons: ["Restart Now", "Later"],
+        defaultId: 0,
+        cancelId: 1,
+        title: "Install Update",
+        message: "Update downloaded. Restart app to apply the update?",
+      })
+      .then((result) => {
+        if (result.response === 0) {
+          autoUpdater.quitAndInstall();
+        }
+      });
+  });
+
+  autoUpdater.checkForUpdatesAndNotify();
+}
+
+app.whenReady().then(() => {
+  const serverPath = path.join(__dirname, "server.js");
+
+  if (!fs.existsSync(serverPath)) {
+    console.error("❌ server.js not found:", serverPath);
+    return;
+  }
+
+  require(serverPath);
+  createWindow();
+  setupAutoUpdater();
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
