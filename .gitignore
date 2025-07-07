@@ -1,0 +1,30 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+build/
+*.log
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+
+# Electron-specific
+*.asar
+*.local
+.env
+.cache/
+*.bak
+
+# Optional if using Electron builder
+out/
+release/
+*.exe
+*.dmg
+*.AppImage
