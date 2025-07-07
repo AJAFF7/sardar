@@ -1,6 +1,6 @@
 {
   "name": "Sardar",
-  "version": "1.0.3",
+  "version": "1.0.2",
   "description": "Electron app",
   "main": "main.js",
   "author": "AJAFF",
