@@ -1,10 +1,12 @@
-const { app, BrowserWindow, dialog } = require("electron");
+
+const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 
 let mainWindow;
+let updateModal;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -76,7 +78,56 @@ function createWindow() {
   });
 }
 
-// Auto updater setup
+// Custom dark modal for update downloaded
+function showUpdateModal() {
+  if (updateModal) return;
+
+  updateModal = new BrowserWindow({
+    width: 400,
+    height: 200,
+    parent: mainWindow,
+    modal: true,
+    show: false,
+    frame: false,
+    resizable: false,
+    backgroundColor: "#222222",
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+
+  updateModal.loadURL(`data:text/html,
+    <html style="background-color:#222222; color:#fff; font-family:sans-serif;">
+      <body style="margin:0; display:flex; flex-direction: column; justify-content:center; align-items:center; height:100%;">
+        <h2>Update Ready</h2>
+        <p>An update has been downloaded. Restart now to apply?</p>
+        <div style="margin-top:20px;">
+          <button id="restart" style="margin:5px; padding:8px 16px; font-size:14px; cursor:pointer;">Restart Now</button>
+          <button id="later" style="margin:5px; padding:8px 16px; font-size:14px; cursor:pointer;">Later</button>
+        </div>
+        <script>
+          const { ipcRenderer } = require('electron');
+          document.getElementById('restart').addEventListener('click', () => {
+            ipcRenderer.send('update-restart');
+          });
+          document.getElementById('later').addEventListener('click', () => {
+            window.close();
+          });
+        </script>
+      </body>
+    </html>
+  `);
+
+  updateModal.once("ready-to-show", () => {
+    updateModal.show();
+  });
+
+  updateModal.on("closed", () => {
+    updateModal = null;
+  });
+}
+
 function setupAutoUpdater() {
   log.transports.file.level = "info";
   autoUpdater.logger = log;
@@ -112,26 +163,20 @@ function setupAutoUpdater() {
     log.info(`📦 Downloading update: ${Math.floor(progress.percent)}%`);
   });
 
+  // REPLACED the dialog popup with custom dark modal:
   autoUpdater.on("update-downloaded", () => {
     log.info("✅ Update downloaded; will install now...");
-    dialog
-      .showMessageBox(mainWindow, {
-        type: "question",
-        buttons: ["Restart Now", "Later"],
-        defaultId: 0,
-        cancelId: 1,
-        title: "Install Update",
-        message: "Update downloaded. Restart app to apply the update?",
-      })
-      .then((result) => {
-        if (result.response === 0) {
-          autoUpdater.quitAndInstall();
-        }
-      });
+    showUpdateModal();
   });
 
   autoUpdater.checkForUpdatesAndNotify();
 }
+
+// IPC listener for restart from modal
+ipcMain.on("update-restart", () => {
+  if (updateModal) updateModal.close();
+  autoUpdater.quitAndInstall();
+});
 
 app.whenReady().then(() => {
   const serverPath = path.join(__dirname, "server.js");
@@ -149,3 +194,156 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
+
+// const { app, BrowserWindow, dialog } = require("electron");
+// const path = require("path");
+// const fs = require("fs");
+// const { autoUpdater } = require("electron-updater");
+// const log = require("electron-log");
+
+// let mainWindow;
+
+// function createWindow() {
+//   mainWindow = new BrowserWindow({
+//     width: 1700,
+//     height: 1167,
+//     frame: false,
+//     transparent: true,
+//     webPreferences: {
+//       nodeIntegration: true,
+//       contextIsolation: true,
+//       enableRemoteModule: false,
+//       webviewTag: true,
+//     },
+//     autoHideMenuBar: true,
+//     backgroundColor: "#00000000",
+//   });
+
+//   mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
+//     console.error("Failed to load local HTML:", err);
+//   });
+
+//   mainWindow.webContents.on("dom-ready", () => {
+//     const imagePath =
+//       "file:///C:/Users/jaff/Environments/Alfa/resources/icons/k8s-bg.png";
+
+//     mainWindow.webContents.insertCSS(`
+//       * {
+//         scrollbar-width: none;
+//         -ms-overflow-style: none;
+//       }
+//       ::-webkit-scrollbar { display: none; }
+
+//       body {
+//         background-image: url("${imagePath}");
+//         background-size: cover;
+//         background-position: center;
+//         overflow: hidden !important;
+//         margin: 0;
+//         height: 100vh;
+//         width: 100vw;
+//         border-radius: 14px;
+//         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+//         background-color: transparent;
+//         font-family: 'Courier New', Courier, monospace;
+//       }
+
+//       html {
+//         border-radius: 12px;
+//         overflow: hidden;
+//         background-color: transparent;
+//       }
+//     `);
+//   });
+
+//   setTimeout(() => {
+//     mainWindow.loadURL("http://localhost:3535");
+//   }, 3000);
+
+//   mainWindow.webContents.on("did-fail-load", (event, code, description) => {
+//     console.error(`❌ Failed to load frontend: ${description} (code: ${code})`);
+//   });
+
+//   mainWindow.webContents.on("did-finish-load", () => {
+//     console.log("✅ Frontend loaded successfully");
+//   });
+
+//   mainWindow.on("closed", () => {
+//     mainWindow = null;
+//   });
+// }
+
+// // Auto updater setup
+// function setupAutoUpdater() {
+//   log.transports.file.level = "info";
+//   autoUpdater.logger = log;
+
+//   autoUpdater.on("checking-for-update", () => {
+//     log.info("🔍 Checking for update...");
+//   });
+
+//   autoUpdater.on("update-available", (info) => {
+//     log.info("⬇️ Update available.", info);
+//     dialog.showMessageBox(mainWindow, {
+//       type: "info",
+//       title: "Update Available",
+//       message: "A new update is available and will be downloaded.",
+//     });
+//   });
+
+//   autoUpdater.on("update-not-available", (info) => {
+//     log.info("✅ No updates available.", info);
+//     dialog.showMessageBox(mainWindow, {
+//       type: "info",
+//       title: "No Update",
+//       message: "You are using the latest version.",
+//     });
+//   });
+
+//   autoUpdater.on("error", (err) => {
+//     log.error("❌ Error in auto-updater.", err);
+//     dialog.showErrorBox("Update error", err == null ? "unknown" : (err.stack || err).toString());
+//   });
+
+//   autoUpdater.on("download-progress", (progress) => {
+//     log.info(`📦 Downloading update: ${Math.floor(progress.percent)}%`);
+//   });
+
+//   autoUpdater.on("update-downloaded", () => {
+//     log.info("✅ Update downloaded; will install now...");
+//     dialog
+//       .showMessageBox(mainWindow, {
+//         type: "question",
+//         buttons: ["Restart Now", "Later"],
+//         defaultId: 0,
+//         cancelId: 1,
+//         title: "Install Update",
+//         message: "Update downloaded. Restart app to apply the update?",
+//       })
+//       .then((result) => {
+//         if (result.response === 0) {
+//           autoUpdater.quitAndInstall();
+//         }
+//       });
+//   });
+
+//   autoUpdater.checkForUpdatesAndNotify();
+// }
+
+// app.whenReady().then(() => {
+//   const serverPath = path.join(__dirname, "server.js");
+
+//   if (!fs.existsSync(serverPath)) {
+//     console.error("❌ server.js not found:", serverPath);
+//     return;
+//   }
+
+//   require(serverPath);
+//   createWindow();
+//   setupAutoUpdater();
+// });
+
+// app.on("window-all-closed", () => {
+//   if (process.platform !== "darwin") app.quit();
+// });

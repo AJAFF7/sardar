@@ -15,7 +15,6 @@
     "productName": "Sardar",
     "asar": true,
     "copyright": "Copyright © 2025 SE. AJAFF",
-    "artifactName": "Sardar-Setup-${version}.${ext}",
     "files": [
       "main.js",
       "server.js",
@@ -31,7 +30,8 @@
     ],
     "directories": {
       "output": "dist",
-      "buildResources": "assets"
+      "buildResources": "assets",
+      "artifactName": "Sardar-Setup-${version}.${ext}"
     },
     "win": {
       "target": "nsis",

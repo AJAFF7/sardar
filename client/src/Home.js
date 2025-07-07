@@ -244,7 +244,7 @@ function Home() {
                 </div>
                 <div className="buttons-section-bottom">
                   <Scanner />
-                  <UpdateChecker />
+                
                   
                 </div>
               </div>
