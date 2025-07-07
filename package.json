@@ -1,6 +1,6 @@
 {
   "name": "sardar",
-  "version": "1.0.7",
+  "version": "0.0.1",
   "description": "Electron-based network tool",
   "main": "main.js",
   "author": "AJAFF",
