@@ -1,9 +1,8 @@
-// main.js
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const { autoUpdater } = require("electron-updater"); // ✅ Add updater
-const log = require("electron-log"); // Optional: log updater info
+const { autoUpdater } = require("electron-updater");
+const log = require("electron-log");
 
 let mainWindow;
 
@@ -13,17 +12,16 @@ function createWindow() {
     height: 1167,
     frame: false,
     transparent: true,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: true,
-      enableRemoteModule: false,
-      webviewTag: true,
-    },
     autoHideMenuBar: true,
     backgroundColor: "#00000000",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"), // ✅ Preload script
+      nodeIntegration: false, // 🔒 Important for contextBridge
+      contextIsolation: true, // ✅ Required for preload to work
+      webviewTag: true,
+    },
   });
 
-  // Load local index.html immediately
   mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
     console.error("Failed to load local HTML:", err);
   });
@@ -83,58 +81,54 @@ function setupAutoUpdater() {
   log.transports.file.level = "info";
   autoUpdater.logger = log;
 
-  // Explicitly set the feed URL for updates
-  autoUpdater.setFeedURL({
-    provider: "github",
-    owner: "AJAFF7",
-    repo: "sardar",
-    // token: "<your_token_if_private>", // optional for private repos
-  });
-
   autoUpdater.on("checking-for-update", () => {
     log.info("🔍 Checking for update...");
   });
 
-  autoUpdater.on("update-available", (info) => {
-    log.info("⬇️ Update available.", info);
+  autoUpdater.on("update-available", () => {
+    log.info("⬇️ Update available");
+    mainWindow.webContents.send("update_available");
   });
 
-  autoUpdater.on("update-not-available", (info) => {
-    log.info("✅ No updates available.", info);
+  autoUpdater.on("update-not-available", () => {
+    log.info("✅ No updates available");
   });
 
   autoUpdater.on("error", (err) => {
-    log.error("❌ Error in auto-updater.", err);
+    log.error("❌ Auto-updater error:", err);
   });
 
   autoUpdater.on("download-progress", (progress) => {
     log.info(`📦 Downloading update: ${Math.floor(progress.percent)}%`);
   });
 
-  // PROMPT USER before installing update
   autoUpdater.on("update-downloaded", () => {
-    log.info("✅ Update downloaded; prompting user to install now...");
+    log.info("✅ Update downloaded");
+    mainWindow.webContents.send("update_downloaded");
 
     const choice = dialog.showMessageBoxSync(mainWindow, {
       type: "question",
       buttons: ["Restart Now", "Later"],
       defaultId: 0,
       cancelId: 1,
-      title: "Update Available",
-      message:
-        "An update has been downloaded. Would you like to restart the app now to apply the update?",
+      title: "Update Ready",
+      message: "An update has been downloaded. Restart the app now to apply the update?",
     });
 
     if (choice === 0) {
       autoUpdater.quitAndInstall();
-    } else {
-      log.info("User chose to install the update later.");
     }
   });
 
   autoUpdater.checkForUpdatesAndNotify();
 }
 
+// Listen from preload (React) side
+ipcMain.on("check_for_updates", () => {
+  autoUpdater.checkForUpdatesAndNotify();
+});
+
+// App ready
 app.whenReady().then(() => {
   const serverPath = path.join(__dirname, "server.js");
 
@@ -145,8 +139,6 @@ app.whenReady().then(() => {
 
   require(serverPath);
   createWindow();
-
-  // ✅ Start update check after everything is initialized
   setupAutoUpdater();
 });
 

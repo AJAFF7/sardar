@@ -18,6 +18,7 @@ import Embed5 from "./Embed5.js";
 import Embed6 from "./Embed6.js";
 import Embed13 from "./Embed13.js";
 import DeleteAccount from "./deleteaccount.js"
+import UpdateChecker from "./UpdateChecker.js"
 
 import logoutImg from "./assets/logout.jpg"; // ✅ Correct image import
 
@@ -188,7 +189,8 @@ function Home() {
       <button className="logout" onClick={handleLogout}>
     <LogoutIcon />
    </button> 
-   <DeleteAccount />        
+   <DeleteAccount /> 
+   <UpdateChecker />       
               
               
             
