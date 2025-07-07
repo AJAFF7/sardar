@@ -95,14 +95,53 @@ function showUpdateModal() {
     },
   });
 
-  updateModal.loadURL(`data:text/html,
-    <html style="background-color:#222222; color:#fff; font-family:sans-serif;">
-      <body style="margin:0; display:flex; flex-direction: column; justify-content:center; align-items:center; height:100%;">
-        <h2 style="margin: 0 0 10px;">Update Ready</h2>
-        <p style="margin: 0 0 20px;">An update has been downloaded. Restart now to apply?</p>
-        <div style="display:flex; gap:10px;">
-          <button id="restart" style="background:#00aaff; color:white; border:none; padding:10px 20px; font-size:14px; border-radius:4px; cursor:pointer;">Restart Now</button>
-          <button id="later" style="background:#555; color:white; border:none; padding:10px 20px; font-size:14px; border-radius:4px; cursor:pointer;">Later</button>
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <style>
+          body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            background-color: #222222;
+            color: #ffffff;
+            font-family: sans-serif;
+          }
+          h2 {
+            margin: 0 0 10px;
+          }
+          p {
+            margin: 0 0 20px;
+          }
+          button {
+            background: #00aaff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+          }
+          #later {
+            background: #555;
+          }
+          .button-group {
+            display: flex;
+            gap: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>Update Ready</h2>
+        <p>An update has been downloaded. Restart now to apply?</p>
+        <div class="button-group">
+          <button id="restart">Restart Now</button>
+          <button id="later">Later</button>
         </div>
         <script>
           const { ipcRenderer } = require('electron');
@@ -115,7 +154,9 @@ function showUpdateModal() {
         </script>
       </body>
     </html>
-  `);
+  `;
+
+  updateModal.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
 
   updateModal.once("ready-to-show", () => {
     updateModal.show();
@@ -136,6 +177,7 @@ function setupAutoUpdater() {
 
   autoUpdater.on("update-available", (info) => {
     log.info("⬇️ Update available.", info);
+    // Show a simple info dialog to notify update available and downloading
     dialog.showMessageBox(mainWindow, {
       type: "info",
       title: "Update Available",
@@ -145,11 +187,12 @@ function setupAutoUpdater() {
 
   autoUpdater.on("update-not-available", (info) => {
     log.info("✅ No updates available.", info);
-    dialog.showMessageBox(mainWindow, {
-      type: "info",
-      title: "No Update",
-      message: "You are using the latest version.",
-    });
+    // No popup or message needed if no update available — comment out dialog
+    // dialog.showMessageBox(mainWindow, {
+    //   type: "info",
+    //   title: "No Update",
+    //   message: "You are using the latest version.",
+    // });
   });
 
   autoUpdater.on("error", (err) => {
@@ -190,7 +233,6 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
-
 
 
 // const { app, BrowserWindow, dialog, ipcMain } = require("electron");
