@@ -1,6 +1,6 @@
 {
   "name": "sardar",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Electron-based network tool",
   "main": "main.js",
   "author": "AJAFF",
@@ -30,7 +30,8 @@
     ],
     "directories": {
       "output": "dist",
-      "buildResources": "assets"
+      "buildResources": "assets",
+      "artifactName": "Sardar-Setup-${version}.${ext}"
     },
     "win": {
       "target": "nsis",
