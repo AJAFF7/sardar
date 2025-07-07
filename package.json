@@ -1,5 +1,5 @@
 {
-  "name": "Alfa",
+  "name": "Sardar",
   "version": "1.0.0",
   "description": "Electron app",
   "main": "main.js",
@@ -11,8 +11,8 @@
     "dist": "electron-builder"
   },
   "build": {
-    "appId": "com.ajaff.alfa",
-    "productName": "Alfa",
+    "appId": "com.ajaff.sardar",
+    "productName": "Sardar",
     "asar": true,
     "copyright": "Copyright © 2025 SE. AJAFF All rights reserved.",
     "files": [
@@ -40,7 +40,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Alfa",
+      "shortcutName": "Sardar",
       "installerIcon": "assets/installer-icon.ico",
       "uninstallerIcon": "assets/uninstaller-icon.ico",
       "installerHeaderIcon": "assets/header-icon.ico",
@@ -55,7 +55,7 @@
       "icon": "assets/icon.png",
       "category": "Utility",
       "maintainer": "AJAFF <ajs-engineer.com>",
-      "synopsis": "Alfa - Electron-based network tool"
+      "synopsis": "Sardar - Electron-based network tool"
     },
     "publish": {
       "provider": "github",
