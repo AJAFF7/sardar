@@ -5,6 +5,7 @@ const { autoUpdater } = require("electron-updater");
 const log = require("electron-log");
 
 let mainWindow;
+let updateCheckStarted = false; // ✅ Prevent double update check
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -22,46 +23,46 @@ function createWindow() {
     backgroundColor: "#00000000",
   });
 
-  mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
-    console.error("Failed to load local HTML:", err);
-  });
+  // mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
+  //   console.error("Failed to load local HTML:", err);
+  // });
 
-  mainWindow.webContents.on("dom-ready", () => {
-    const imagePath =
-      "file:///C:/Users/jaff/Environments/Alfa/resources/icons/k8s-bg.png";
+  // mainWindow.webContents.on("dom-ready", () => {
+  //   const imagePath =
+  //     "file:///C:/Users/jaff/Environments/Alfa/resources/icons/k8s-bg.png";
 
-    mainWindow.webContents.insertCSS(`
-      * {
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-      }
-      ::-webkit-scrollbar { display: none; }
+  //   mainWindow.webContents.insertCSS(`
+  //     * {
+  //       scrollbar-width: none;
+  //       -ms-overflow-style: none;
+  //     }
+  //     ::-webkit-scrollbar { display: none; }
 
-      body {
-        background-image: url("${imagePath}");
-        background-size: cover;
-        background-position: center;
-        overflow: hidden !important;
-        margin: 0;
-        height: 100vh;
-        width: 100vw;
-        border-radius: 14px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        background-color: transparent;
-        font-family: 'Courier New', Courier, monospace;
-      }
+  //     body {
+  //       background-image: url("${imagePath}");
+  //       background-size: cover;
+  //       background-position: center;
+  //       overflow: hidden !important;
+  //       margin: 0;
+  //       height: 100vh;
+  //       width: 100vw;
+  //       border-radius: 14px;
+  //       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  //       background-color: transparent;
+  //       font-family: 'Courier New', Courier, monospace;
+  //     }
 
-      html {
-        border-radius: 12px;
-        overflow: hidden;
-        background-color: transparent;
-      }
-    `);
-  });
+  //     html {
+  //       border-radius: 12px;
+  //       overflow: hidden;
+  //       background-color: transparent;
+  //     }
+  //   `);
+  // });
 
   setTimeout(() => {
     mainWindow.loadURL("http://localhost:3535");
-  }, 3000);
+  }, 2000);
 
   mainWindow.webContents.on("did-fail-load", (event, code, description) => {
     console.error(`❌ Failed to load frontend: ${description} (code: ${code})`);
@@ -69,7 +70,11 @@ function createWindow() {
 
   mainWindow.webContents.on("did-finish-load", () => {
     console.log("✅ Frontend loaded successfully");
-    setupAutoUpdater(); // ✅ Safe to check for updates now
+
+    if (!updateCheckStarted) {
+      updateCheckStarted = true;
+      setupAutoUpdater(); // ✅ Ensure it's only called once
+    }
   });
 
   mainWindow.on("closed", () => {
@@ -82,7 +87,7 @@ function setupAutoUpdater() {
   log.transports.file.level = "info";
   autoUpdater.logger = log;
 
-  autoUpdater.autoDownload = false; // Prevent automatic download
+  autoUpdater.autoDownload = false;
 
   autoUpdater.on("checking-for-update", () => {
     log.info("🔍 Checking for update...");
@@ -103,7 +108,7 @@ function setupAutoUpdater() {
     if (result.response === 0) {
       autoUpdater.downloadUpdate();
     } else {
-      log.info("⏩ User chose not to download the update.");
+      log.info("⏩ User declined to download update.");
     }
   });
 
@@ -116,7 +121,8 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on("update-downloaded", () => {
-    log.info("✅ Update downloaded; will install now...");
+    log.info("✅ Update downloaded.");
+
     dialog
       .showMessageBox(mainWindow, {
         type: "question",
@@ -124,7 +130,7 @@ function setupAutoUpdater() {
         defaultId: 0,
         cancelId: 1,
         title: "Install Update",
-        message: "Update downloaded. Restart app to apply the update?",
+        message: "Update downloaded. Restart app to apply it?",
       })
       .then((result) => {
         if (result.response === 0) {
@@ -134,13 +140,15 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on("error", (err) => {
-    log.warn("⚠️ Silent auto-update error:", err?.message || err);
+    log.warn("⚠️ Auto-update error:", err?.message || err);
   });
 
-  // ✅ Manual check (no download unless user agrees)
-  autoUpdater.checkForUpdates().catch((err) => {
-    log.warn("⚠️ No update found or update server not reachable:", err?.message || err);
-  });
+  // ⏳ Delay update check by 3 seconds after launch
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch((err) => {
+      log.warn("⚠️ Update check failed:", err?.message || err);
+    });
+  }, 1000);
 }
 
 app.whenReady().then(() => {
@@ -152,13 +160,184 @@ app.whenReady().then(() => {
   }
 
   require(serverPath);
-  createWindow(); // ✅ Only window for now; updater waits until loaded
+  createWindow(); // Window opens, update runs only once after load
 });
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
+
+
+
+
+
+
+// const { app, BrowserWindow, dialog } = require("electron");
+// const path = require("path");
+// const fs = require("fs");
+// const { autoUpdater } = require("electron-updater");
+// const log = require("electron-log");
+
+// let mainWindow;
+// let updateCheckStarted = false; // ✅ Prevent double update check
+
+// function createWindow() {
+//   mainWindow = new BrowserWindow({
+//     width: 1700,
+//     height: 1167,
+//     frame: false,
+//     transparent: true,
+//     webPreferences: {
+//       nodeIntegration: true,
+//       contextIsolation: true,
+//       enableRemoteModule: false,
+//       webviewTag: true,
+//     },
+//     autoHideMenuBar: true,
+//     backgroundColor: "#00000000",
+//   });
+
+//   mainWindow.loadFile(path.join(__dirname, "index.html")).catch((err) => {
+//     console.error("Failed to load local HTML:", err);
+//   });
+
+//   mainWindow.webContents.on("dom-ready", () => {
+//     const imagePath =
+//       "file:///C:/Users/jaff/Environments/Alfa/resources/icons/k8s-bg.png";
+
+//     mainWindow.webContents.insertCSS(`
+//       * {
+//         scrollbar-width: none;
+//         -ms-overflow-style: none;
+//       }
+//       ::-webkit-scrollbar { display: none; }
+
+//       body {
+//         background-image: url("${imagePath}");
+//         background-size: cover;
+//         background-position: center;
+//         overflow: hidden !important;
+//         margin: 0;
+//         height: 100vh;
+//         width: 100vw;
+//         border-radius: 14px;
+//         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+//         background-color: transparent;
+//         font-family: 'Courier New', Courier, monospace;
+//       }
+
+//       html {
+//         border-radius: 12px;
+//         overflow: hidden;
+//         background-color: transparent;
+//       }
+//     `);
+//   });
+
+//   setTimeout(() => {
+//     mainWindow.loadURL("http://localhost:3535");
+//   }, 2000);
+
+//   mainWindow.webContents.on("did-fail-load", (event, code, description) => {
+//     console.error(`❌ Failed to load frontend: ${description} (code: ${code})`);
+//   });
+
+//   mainWindow.webContents.on("did-finish-load", () => {
+//     console.log("✅ Frontend loaded successfully");
+
+//     if (!updateCheckStarted) {
+//       updateCheckStarted = true;
+//       setupAutoUpdater(); // ✅ Ensure it's only called once
+//     }
+//   });
+
+//   mainWindow.on("closed", () => {
+//     mainWindow = null;
+//   });
+// }
+
+// // ✅ Auto updater setup with prompt before downloading
+// function setupAutoUpdater() {
+//   log.transports.file.level = "info";
+//   autoUpdater.logger = log;
+
+//   autoUpdater.autoDownload = false;
+
+//   autoUpdater.on("checking-for-update", () => {
+//     log.info("🔍 Checking for update...");
+//   });
+
+//   autoUpdater.on("update-available", async (info) => {
+//     log.info("⬇️ Update available.", info);
+
+//     const result = await dialog.showMessageBox(mainWindow, {
+//       type: "question",
+//       buttons: ["Download", "Cancel"],
+//       defaultId: 0,
+//       cancelId: 1,
+//       title: "Update Available",
+//       message: "A new update is available. Do you want to download it now?",
+//     });
+
+//     if (result.response === 0) {
+//       autoUpdater.downloadUpdate();
+//     } else {
+//       log.info("⏩ User declined to download update.");
+//     }
+//   });
+
+//   autoUpdater.on("update-not-available", (info) => {
+//     log.info("✅ No updates available.", info);
+//   });
+
+//   autoUpdater.on("download-progress", (progress) => {
+//     log.info(`📦 Downloading update: ${Math.floor(progress.percent)}%`);
+//   });
+
+//   autoUpdater.on("update-downloaded", () => {
+//     log.info("✅ Update downloaded.");
+
+//     dialog
+//       .showMessageBox(mainWindow, {
+//         type: "question",
+//         buttons: ["Restart Now", "Later"],
+//         defaultId: 0,
+//         cancelId: 1,
+//         title: "Install Update",
+//         message: "Update downloaded. Restart app to apply it?",
+//       })
+//       .then((result) => {
+//         if (result.response === 0) {
+//           autoUpdater.quitAndInstall();
+//         }
+//       });
+//   });
+
+//   autoUpdater.on("error", (err) => {
+//     log.warn("⚠️ Auto-update error:", err?.message || err);
+//   });
+
+//   autoUpdater.checkForUpdates().catch((err) => {
+//     log.warn("⚠️ Update check failed:", err?.message || err);
+//   });
+// }
+
+// app.whenReady().then(() => {
+//   const serverPath = path.join(__dirname, "server.js");
+
+//   if (!fs.existsSync(serverPath)) {
+//     console.error("❌ server.js not found:", serverPath);
+//     return;
+//   }
+
+//   require(serverPath);
+//   createWindow(); // Window opens, update runs only once after load
+// });
+
+// app.on("window-all-closed", () => {
+//   if (process.platform !== "darwin") app.quit();
+// });
 
 
 

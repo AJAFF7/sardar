@@ -19,6 +19,7 @@ import Embed6 from "./Embed6.js";
 import Embed13 from "./Embed13.js";
 import DeleteAccount from "./deleteaccount.js"
 import UpdateChecker from "./UpdateChecker.js"
+//import DeviceList from "./DeviceList.js"
 
 import logoutImg from "./assets/logout.jpg"; // ✅ Correct image import
 
@@ -81,7 +82,7 @@ function Home() {
 
     // ✅ Clear localStorage and navigate
     localStorage.removeItem("userID");
-    localStorage.clear();
+    localStorage.clear("token");
     navigate("/Login");
   };
 
@@ -244,6 +245,7 @@ function Home() {
                 </div>
                 <div className="buttons-section-bottom">
                   <Scanner />
+                  
                 
                   
                 </div>
@@ -251,6 +253,7 @@ function Home() {
 
               <div className="podstatus-section">
                 <ConnectedDevices />
+                {/* <DeviceList /> */}
               </div>
             </>
           )}

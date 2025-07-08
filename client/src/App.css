@@ -376,7 +376,7 @@ h2 {
 /* Individual Service Row */
 .service-item {
     display: flex;
-    justify-content: space-between;
+    /* justify-content: space-between; */
     align-items: center;
     padding: 5px;
     border: 1px solid #605f85;
@@ -411,7 +411,7 @@ h2 {
     color: #666666; /*#516BAA */
     font-size: 16px;
     font-weight: bold;
-    width: 34%;
+    width: 30%;
     margin-right: 40px;
 }
 /*#2AA1B38/
@@ -476,6 +476,58 @@ input:checked + .slider {
     color: white;
     width: 84%;
     margin-top: 0px;
+}
+
+
+
+/*printer */
+.add-ip {
+  display: flex;
+  align-items: center;
+  margin: 0.5rem 0;
+  justify-content: flex-start; /* keep input aligned to the left */
+}
+
+.service-input {
+  padding: 4px 8px;
+  font-size: 14px;
+  width: 130px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  margin-top: 20px;
+ 
+}
+
+.service-input:focus {
+  border-color: #0ee41d;
+  box-shadow: 0 0 0 2px rgba(14, 228, 29, 0.3);
+}
+
+.service-item-ip {
+  display: flex;
+  align-items: center;
+  padding: 2px 6px;
+  font-size: 13px;
+  border: 1px solid #605f85;
+  border-radius: 6px;
+  width: 185px; /* 👈 Smaller width */
+  height: 28px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  border-left: 3px solid #777777;
+  border-top: 1px solid #777777;
+  border-right: 1px solid #777777;
+  border-bottom: 1px solid #777777;
+}
+
+
+.play-pause {
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /*
@@ -1679,20 +1731,36 @@ rotating-circle1 {
 
 
 .fullscreen-wrapper {
-  width: 100vw;
-  height: 100vh;
+  width: 98vw;
+  height: 98vh;
+  margin-left: 17px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #962323; 
+  /* background: #962323;  */
+
+
+ background-image: url("./assets/login-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  border-radius: 15px;
+  border: 1px solid #888;
+
 }
 
 
 .login-container {
    
-  width: 1700px; /* 1700px */
+    width: 98vw;
+    height: 98vh;
+   
+
+    /* width: 1700px; 
+vv  height: 1167px ; */
+
  
-  height: 1167px ; /* 1167px */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1826,7 +1894,7 @@ form {
 .butterfly-animation {
   width: 200px;
   height: 200px;
-  animation: flyAround 3s ease-in-out infinite, flap 0.3s ease-in-out infinite;
+  animation: flyAround 0.8s ease-in-out infinite, flap 0.2s ease-in-out infinite;
 }
 
 @keyframes flyAround {
@@ -2026,4 +2094,60 @@ margin-bottom: 0px;
 .modern-button:active {
   transform: scale(0.98);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+
+
+
+
+.device-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: #f2f4f8;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.device-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.device-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.device-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.device-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1.5rem;
+  margin-top: 4rem;
+  color: #444;
 }

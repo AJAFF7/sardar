@@ -3,9 +3,7 @@ const { exec } = require("child_process");
 const path = require("path");
 const cors = require("cors");
 const cheerio = require("cheerio");
-//const dns = require("dns");
-const dns = require("dns").promises;
-const os = require('os');
+const dns = require("dns");
 const request = require('request');
 const fetch = require("node-fetch");
 const winston = require("winston");
@@ -34,88 +32,6 @@ app.use(express.json());
 app.use(cors({ origin: "*" }));
 app.use(express.static(path.join(__dirname, "build")));
 app.options("*", cors()); // Handle CORS preflight
-
-
-
-
-
-
-
-// function getLocalIP() {
-//   const interfaces = os.networkInterfaces();
-//   for (const name in interfaces) {
-//     for (const iface of interfaces[name]) {
-//       if (iface.family === 'IPv4' && !iface.internal) {
-//         return iface.address;
-//       }
-//     }
-//   }
-//   return null;
-// }
-
-// function generateIPRange(ip) {
-//   const parts = ip.split('.');
-//   return Array.from({ length: 254 }, (_, i) => `${parts[0]}.${parts[1]}.${parts[2]}.${i + 1}`);
-// }
-
-// function pingSweep(ipList) {
-//   return Promise.all(
-//     ipList.map(ip =>
-//       new Promise(resolve =>
-//         exec(`ping -n 1 -w 100 ${ip}`, () => resolve())
-//       )
-//     )
-//   );
-// }
-
-// function getARPTable() {
-//   return new Promise((resolve, reject) => {
-//     exec('arp -a', (err, stdout) => {
-//       if (err) return reject(err);
-//       const devices = stdout
-//         .split('\n')
-//         .filter(line => line.includes('.'))
-//         .map(line => {
-//           const parts = line.trim().split(/\s+/);
-//           return {
-//             ip: parts[0],
-//             mac: parts[1] !== 'ff-ff-ff-ff-ff-ff' ? parts[1] : null
-//           };
-//         })
-//         .filter(d => d.mac);
-//       resolve(devices);
-//     });
-//   });
-// }
-
-// async function scanDevices() {
-//   const localIP = getLocalIP();
-//   if (!localIP) throw new Error("Local IP not found");
-
-//   const ipRange = generateIPRange(localIP);
-//   await pingSweep(ipRange);
-//   const devices = await getARPTable();
-
-//   return devices;
-// }
-
-
-
-// app.get('/api/scan', async (req, res) => {
-//   try {
-//     const devices = await scanDevices();
-//     res.json({ devices });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: err.toString() });
-//   }
-// }); 
-
-
-
-// Helper to run nmap and parse results
-
-
 
 //🔌 API route to scan local network devices
 
@@ -315,75 +231,30 @@ app.delete("/p1-auths/:id", async (req, res) => {
 
 
 // server.js or your router file
-// app.post("/api/check-device", async (req, res) => {
-//   const { ip } = req.body;
+app.post("/api/check-device", async (req, res) => {
+  const { ip } = req.body;
 
-//   if (!ip || !/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
-//     return res.status(400).json({ error: "Invalid IP address" });
-//   }
+  if (!ip || !/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
+    return res.status(400).json({ error: "Invalid IP address" });
+  }
 
-//   try {
-//     // Try to fetch something from the device to see if it's alive
-//     const response = await fetch(`http://${ip}`, { method: "GET", timeout: 3000 });
+  try {
+    // Try to fetch something from the device to see if it's alive
+    const response = await fetch(`http://${ip}`, { method: "GET", timeout: 3000 });
     
-//     if (!response.ok) {
-//       return res.status(500).json({ error: "Device is unreachable" });
-//     }
+    if (!response.ok) {
+      return res.status(500).json({ error: "Device is unreachable" });
+    }
 
-//     return res.json({ success: true, url: `http://${ip}` });
-//   } catch (error) {
-//     return res.status(500).json({ error: "Could not connect to device" });
-//   }
-// });
-
-
-
-// // Logger setup with winston
-// const logFilePath = path.join(__dirname, "server.log");
-
-// const logger = winston.createLogger({
-//   level: "info",
-//   format: winston.format.combine(
-//     winston.format.timestamp(),
-//     winston.format.printf(({ timestamp, level, message }) => {
-//       return `${timestamp} [${level}]: ${message}`;
-//     })
-//   ),
-//   transports: [
-//     new winston.transports.File({ filename: logFilePath }),
-//     new winston.transports.Console(),
-//   ],
-// });
+    return res.json({ success: true, url: `http://${ip}` });
+  } catch (error) {
+    return res.status(500).json({ error: "Could not connect to device" });
+  }
+});
 
 
 
-
-// // Sample route to generate a log
-// app.get("/", (req, res) => {
-//   logger.info("GET / hit at " + new Date().toISOString());
-//   res.send("Server is running and logging...");
-// });
-
-// // Log API
-// app.get("/api/logs", (req, res) => {
-//   fs.readFile(logFilePath, "utf8", (err, data) => {
-//     if (err) {
-//       logger.error("Failed to read logs: " + err.message);
-//       return res.status(500).json({ error: "Failed to read logs." });
-//     }
-//     res.json({ logs: data });
-//   });
-// });
-
-// // Example log for every 10 seconds (for demo)
-// setInterval(() => {
-//   logger.info("Heartbeat log at " + new Date().toISOString());
-// }, 10000);
-
-
-
-
-// Logger setup
+// Logger setup with winston
 const logFilePath = path.join(__dirname, "server.log");
 
 const logger = winston.createLogger({
@@ -400,14 +271,16 @@ const logger = winston.createLogger({
   ],
 });
 
+
+
+
 // Sample route to generate a log
 app.get("/", (req, res) => {
-  const msg = `GET / hit at ${new Date().toISOString()}`;
-  logger.info(msg);
+  logger.info("GET / hit at " + new Date().toISOString());
   res.send("Server is running and logging...");
 });
 
-// Log fetch API
+// Log API
 app.get("/api/logs", (req, res) => {
   fs.readFile(logFilePath, "utf8", (err, data) => {
     if (err) {
@@ -418,35 +291,7 @@ app.get("/api/logs", (req, res) => {
   });
 });
 
-// Device check API with logging
-app.post("/api/check-device", async (req, res) => {
-  const { ip } = req.body;
-
-  if (!ip || !/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
-    const msg = `Invalid IP address received: ${ip}`;
-    logger.warn(msg);
-    return res.status(400).json({ error: "Invalid IP address" });
-  }
-
-  try {
-    logger.info(`Checking device at IP: ${ip}`);
-    const response = await fetch(`http://${ip}`, { method: "GET", timeout: 3000 });
-
-    if (!response.ok) {
-      const msg = `Device at ${ip} responded with status: ${response.status}`;
-      logger.warn(msg);
-      return res.status(500).json({ error: "Device is unreachable" });
-    }
-
-    logger.info(`Device at ${ip} is reachable.`);
-    return res.json({ success: true, url: `http://${ip}` });
-  } catch (error) {
-    logger.error(`Could not connect to device at ${ip}: ${error.message}`);
-    return res.status(500).json({ error: "Could not connect to device" });
-  }
-});
-
-// Heartbeat logging every 10 seconds
+// Example log for every 10 seconds (for demo)
 setInterval(() => {
   logger.info("Heartbeat log at " + new Date().toISOString());
 }, 10000);

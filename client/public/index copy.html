@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <meta name="description" content="Sardar Group" />
+    <meta name="description" content="Kubernetes Monitoring Dashboard" />
 
     <!-- Icons & Manifest -->
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/site.webmanifest" />
 
-    <title>Sardar Group</title>
+    <title>K8s App</title>
 
     <style>
       /* Full-Screen Loading Screen */
@@ -29,22 +29,22 @@
         z-index: 10;
       } */
 
-      /* .loading-screen {
+      .loading-screen {
  
- 
+  /* background-color: #fff;  */
   display: flex;
   justify-content: center;
   align-items: center;
   color: white;
   z-index: 10;
 
-
+  /* Optional: center it absolutely on screen */
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   border-radius: 10px;
-} */
+}
 
       /* Spinner */
       /* .spinner {
@@ -69,9 +69,9 @@
   </head>
   <body>
     <!-- Loading Screen -->
-    <!-- <div class="loading-screen">
+    <div class="loading-screen">
       <div class="spinner"></div>
-    </div> -->
+    </div>
 
     <!-- React App -->
     <div id="root"></div>
@@ -80,10 +80,10 @@
       // Hide loading screen once React is ready
       window.onload = function () {
         const rootElement = document.getElementById('root');
-        //  const loadingScreen = document.querySelector('.loading-screen');
+        const loadingScreen = document.querySelector('.loading-screen');
 
         setTimeout(() => {
-          // loadingScreen.style.display = 'none';  // Hide loading screen
+          loadingScreen.style.display = 'none';  // Hide loading screen
           rootElement.style.display = 'block';   // Show React app
         }, 1000);
       };

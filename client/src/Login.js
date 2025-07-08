@@ -66,7 +66,7 @@ const Login = () => {
       const result = await axios.post("/personal1-login", { username, password });
       window.localStorage.setItem("userID", result.data.userID);
       setLoading(true);
-      setTimeout(() => navigate("/"), 2000);
+      setTimeout(() => navigate("/"), 500);
     } catch (error) {
       setAlertMessage("Incorrect credentials");
       setAlertType("error");

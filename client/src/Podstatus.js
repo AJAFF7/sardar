@@ -1,3 +1,8 @@
+
+
+
+///////////////////////
+
 import React, { useState } from "react";
 
 const ConnectedDevices = () => {
@@ -314,7 +319,7 @@ export default ConnectedDevices;
 
 
 
-
+/////////////////////
 
 
 
